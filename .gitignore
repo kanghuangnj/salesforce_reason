@@ -1,0 +1,7 @@
+lib/__pycache__/*
+cache/*
+logs
+airflow*
+*.cfg
+.DS_Store
+*~
