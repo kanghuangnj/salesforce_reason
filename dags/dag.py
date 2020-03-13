@@ -9,7 +9,7 @@ from airflow.operators.dummy_operator import DummyOperator
 import os,sys
 
 sys.path.insert(0,os.path.abspath(os.path.dirname(__file__))+'/../')
-from lib import hot_location_longterm
+from lib import *
 
 
 
@@ -20,6 +20,13 @@ args = {
 }
 
 dag_id = 'salesforce_recommendation_reason'
+independent_reasons = {
+    'hot_location_longterm': hot_location_longterm,
+    'hot_location_occupancy': hot_location_occupancy,
+    'hot_location_shortterm': hot_location_shortterm,
+
+}
+
 
 """
 Create a DAG to execute tasks
@@ -35,18 +42,31 @@ main_op = DummyOperator(
     dag= dag,
 )
 
-end_op = DummyOperator(
-    task_id = 'End',
-    trigger_rule = 'none_failed',
-    dag = dag,
-)
-
-task_get_reason = 'hot_location_longterm'
-op_get_reason = PythonOperator(
-    task_id=task_get_reason,
-    python_callable=hot_location_longterm,
+generate_pair_op = PythonOperator(
+    task_id='generate_pairs',
+    python_callable=generate_pairs,
     dag=dag,
 )
 
+# end_op = DummyOperator(
+#     task_id = 'End',
+#     trigger_rule = 'none_failed',
+#     dag = dag,
+# )
 
-main_op >> op_get_reason >> end_op
+merging_op = PythonOperator(
+    task_id='merging_all_reasons',
+    provide_context=True,
+    python_callable=merge_reasons,
+    op_kwargs={'reason_names': list(independent_reasons.keys())},
+    trigger_rule = 'all_done',
+    dag=dag,
+)
+reason_ops = {}
+for name in independent_reasons:
+    reason_ops[name] = PythonOperator(
+                                task_id=name,
+                                python_callable=independent_reasons[name],
+                                dag=dag,
+                            )
+    main_op >> reason_ops[name] >> merging_op

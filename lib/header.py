@@ -37,13 +37,14 @@ features_mappings = {
             'UUID__c': 'atlas_location_uuid', 
             'Occupancy_Rate__c': 'occupancy', 
             'Occupancy_Rating__c': 'occupancy_rating',
-            'City__c': 'city'
+            'City__c': 'city',
+            'Country__c': 'country',
         }
     },
     reason_type['hot_location']['short_term']:{
         'tour':{
             'Location_UUID__c': 'atlas_location_uuid',
-            'Tour_Date_Time__c': 'tour_date',
+            'Tour_Date_Time__c': 'date',
             'City__c': 'city'
         }
     },
@@ -111,4 +112,5 @@ datapaths= {
     'building': pj(DATAPATH, 'sfdc_buildings_all.csv'),
     'geography': pj(DATAPATH, 'sfdc_geography_all.csv'),
     'company': pj(DATAPATH, 'sfdc_company_all.csv'),
+    'tour': pj(DATAPATH, 'sfdc_tour_all.csv'),
 }

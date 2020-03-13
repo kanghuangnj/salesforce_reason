@@ -96,7 +96,44 @@ class Longterm(Reason):
         hot_df['city_rank'] = hot_df.groupby(['city'])['score'].rank(method='first', ascending=False)
         return hot_df
 
-if __name__ == '__main__':
-    sources = ['opportunity', 'building']
-    reason = Longterm(sources)
-    reason.export()
+
+class Occupancy(Reason):
+    def __init__(self, sources):
+        Reason.__init__(self, sources, reason_type['hot_location']['occupancy'])
+
+    def export(self):
+        building_df = self.sources['building']
+        us_building = building_df[building_df.country == 'USA']
+        us_building = us_building.sort_values('occupancy', ascending=False).reset_index(drop=True)
+        us_building['global_rank'] = us_building.index+1
+        us_building['city_rank'] = us_building.groupby(['city'])['occupancy'].rank(method='first', ascending=False)
+        us_building = us_building.rename(columns={'occupancy': 'score', 'occupancy_rating': 'rating'})
+        return us_building
+
+class Shortterm(Reason):
+    def __init__(self, sources):
+        Reason.__init__(self, sources, reason_type['hot_location']['short_term'])
+    
+    def export(self):
+        tour_df = self.sources['tour']
+        k = 3
+        cur_date = date.fromtimestamp(time.time())
+        valid_month = cur_date.month - k
+        valid_year = cur_date.year
+        if valid_month <= 0:
+            valid_month += 12
+            valid_year -= 1
+        valid_date = '-'.join([str(valid_year), str(valid_month), str(cur_date.day)])
+        cur_date = '-'.join([str(cur_date.year), str(cur_date.month), str(cur_date.day)])
+
+        recent_tour = tour_df[(~tour_df['atlas_location_uuid'].isna()) & (~tour_df['date'].isna())]
+        recent_tour = recent_tour[(recent_tour['date'] > valid_date) & (recent_tour['date'] <= cur_date)][['atlas_location_uuid','date']]
+        recent_tour = recent_tour.groupby('atlas_location_uuid').count().reset_index(drop=False)
+        recent_tour = recent_tour.merge(tour_df[['atlas_location_uuid', 'city']], on='atlas_location_uuid')
+        recent_tour = recent_tour[~recent_tour.duplicated('atlas_location_uuid')]
+        recent_tour = recent_tour.rename(columns={'date': 'score'})
+        recent_tour = recent_tour.sort_values('score', ascending=False).reset_index(drop=True)
+        recent_tour['global_rank'] = recent_tour.index+1
+        recent_tour['city_rank'] = recent_tour.groupby(['city'])['score'].rank(method='first', ascending=False)
+        return recent_tour
+
