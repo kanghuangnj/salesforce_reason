@@ -1,6 +1,4 @@
-dags/__pycache__
-libs/__pycache__
-__pycache__
+*.pyc
 cache
 logs
 airflow*

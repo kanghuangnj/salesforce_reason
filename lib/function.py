@@ -1,4 +1,5 @@
 from lib.hot_location import Longterm, Occupancy, Shortterm
+from lib.similar_location import Lookalike
 from lib.header import CACHEPATH, reason_type, features_mappings
 import os, glob
 import pandas as pd
@@ -23,10 +24,11 @@ def define_reason(sources, reason_type, Reason):
     return execute_reason
 
 for toplevel_type in reason_type:
-    if not toplevel_type in ['hot_location']: continue
+    # if not toplevel_type in ['hot_location']: continue
     for second_type in reason_type[toplevel_type]:
         subtype = reason_type[toplevel_type][second_type]
         sources = list(features_mappings[subtype].keys())
+        if subtype !=  'similar_location_lookalike': continue
         reason_class = second_type[0].upper() + second_type[1:]
         reason_function[subtype] = define_reason(sources, subtype, eval(reason_class))
 
@@ -104,4 +106,4 @@ def print_msg(msg):
     return printer  # this got changed
     
 
-#reason_function['hot_location_occupancy']()
+reason_function['similar_location_lookalike']()

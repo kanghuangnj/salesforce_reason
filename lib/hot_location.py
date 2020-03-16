@@ -1,5 +1,5 @@
 from lib.base import Reason
-from lib.header import reason_type, DATAPATH
+from lib.header import reason_type
 from collections import defaultdict
 from datetime import datetime, date
 import time
@@ -10,7 +10,8 @@ class Longterm(Reason):
     def __init__(self, sources):
         Reason.__init__(self, sources, reason_type['hot_location']['longterm'])
 
-    def decay(self, row):
+    @staticmethod
+    def _decay(row):
         max_contract_revenue = 3780
         cur_date = date.fromtimestamp(time.time())
         year, month, day = row['date'].split('-')
@@ -18,30 +19,23 @@ class Longterm(Reason):
         row['decay_contract_revenue'] = (1.02**(delta_month//12))*(0.98**delta_month) * min(max_contract_revenue, row['contract_revenue'])
         return row
 
-    def expect_revenue(self, row):
+    @staticmethod
+    def _expect_revenue(row):
         valid_row = row[~row.contract_revenue.isna()]
         valid_row = valid_row[valid_row['stage']=='Closed Won']
         if len(valid_row) == 0:
             revenue = len(row)
         else:
-            valid_row = valid_row.apply(self.decay, axis=1)
+            valid_row = valid_row.apply(Longterm._decay, axis=1)
             revenue = valid_row['decay_contract_revenue'].sum()
             revenue /= len(valid_row)
         top_row = row.head(1)
         top_row['avg_revenue'] = revenue 
         return top_row
 
-
-    def export(self):
-        # op_df: Salesforce opportunity table
-        op_df = self.sources['opportunity']
-        building_df = self.sources['building']
-        us_building_df = building_df[building_df['country'] == 'USA']
-        op_df = op_df[op_df['atlas_location_uuid'].isin(us_building_df['atlas_location_uuid'].unique())]
-        op_df = op_df.merge(us_building_df[['atlas_location_uuid', 'city']], on='atlas_location_uuid')
-        headquarter_id = 'cec7a8c2-4a49-4db0-8b89-53c80e2fa83a'
-        op_df = op_df[op_df.atlas_location_uuid != headquarter_id]
-        group_op_df = op_df.groupby(['account_id', 'atlas_location_uuid']).apply(self.expect_revenue)
+    @staticmethod
+    def _HITS(op_df):
+        group_op_df = op_df.groupby(['account_id', 'atlas_location_uuid']).apply(Longterm._expect_revenue)
 
         loc2id = defaultdict(int)
         acc2id = defaultdict(int)
@@ -70,10 +64,23 @@ class Longterm(Reason):
         loc_auth_scores = sorted(loc_auth_scores, key=lambda x: x[1], reverse=True)
         company_scores = pd.DataFrame(acc_hub_scores, columns=['account_id', 'score'])
         location_scores = pd.DataFrame(loc_auth_scores, columns=['atlas_location_uuid', 'score'])
-        city_location_scores = pd.merge(location_scores,
-                                        op_df[['atlas_location_uuid', 'city']], 
-                                        how='left', 
-                                        on='atlas_location_uuid')
+        return location_scores
+
+    def export(self):
+        # op_df: Salesforce opportunity table
+        op_df = self.sources['opportunity']
+        building_df = self.sources['building']
+        us_building_df = building_df[building_df['country'] == 'USA' &
+                                    (~building_df['atlas_location_uuid'].isna()) & 
+                                    (building_df['atlas_location_uuid'] != 'TestBuilding')]
+        op_df = op_df[op_df['atlas_location_uuid'].isin(us_building_df['atlas_location_uuid'].unique())]
+        op_df = op_df.merge(us_building_df[['atlas_location_uuid', 'city']], on='atlas_location_uuid')
+        headquarter_id = 'cec7a8c2-4a49-4db0-8b89-53c80e2fa83a'
+        op_df = op_df[op_df.atlas_location_uuid != headquarter_id]
+        
+        location_scores = Longterm._HITS(op_df)
+
+        city_location_scores = location_scores.merge(op_df[['atlas_location_uuid', 'city']], how='left', on='atlas_location_uuid')
         city_location_scores = city_location_scores[~city_location_scores.duplicated(['atlas_location_uuid'])]
         city_location_scores = city_location_scores[['atlas_location_uuid', 'score', 'city']].reset_index(drop=True)
         # city_num = len(loc2id)
@@ -105,12 +112,14 @@ class Occupancy(Reason):
 
     def export(self):
         building_df = self.sources['building']
-        us_building = building_df[building_df.country == 'USA']
-        us_building = us_building.sort_values('occupancy', ascending=False).reset_index(drop=True)
-        us_building['global_rank'] = us_building.index+1
-        us_building['city_rank'] = us_building.groupby(['city'])['occupancy'].rank(method='first', ascending=False)
-        us_building = us_building.rename(columns={'occupancy': 'score', 'occupancy_rating': 'rating'})
-        return us_building
+        us_building_df = building_df[building_df['country'] == 'USA' &
+                                (~building_df['atlas_location_uuid'].isna()) & 
+                                (building_df['atlas_location_uuid'] != 'TestBuilding')]
+        us_building_df = us_building_df.sort_values('occupancy', ascending=False).reset_index(drop=True)
+        us_building_df['global_rank'] = us_building_df.index+1
+        us_building_df['city_rank'] = us_building_df.groupby(['city'])['occupancy'].rank(method='first', ascending=False)
+        us_building_df = us_building_df.rename(columns={'occupancy': 'score', 'occupancy_rating': 'rating'})
+        return us_building_df
 
 class Shortterm(Reason):
     def __init__(self, sources):
