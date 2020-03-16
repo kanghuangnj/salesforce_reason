@@ -8,7 +8,7 @@ import networkx as nx
 
 class Longterm(Reason):
     def __init__(self, sources):
-        Reason.__init__(self, sources, reason_type['hot_location']['long_term'])
+        Reason.__init__(self, sources, reason_type['hot_location']['longterm'])
 
     def decay(self, row):
         max_contract_revenue = 3780
@@ -71,27 +71,29 @@ class Longterm(Reason):
         company_scores = pd.DataFrame(acc_hub_scores, columns=['account_id', 'score'])
         location_scores = pd.DataFrame(loc_auth_scores, columns=['atlas_location_uuid', 'score'])
         city_location_scores = pd.merge(location_scores,
-                                   op_df[['atlas_location_uuid', 'city']], 
-                                   how='left', 
-                                   on='atlas_location_uuid')
+                                        op_df[['atlas_location_uuid', 'city']], 
+                                        how='left', 
+                                        on='atlas_location_uuid')
         city_location_scores = city_location_scores[~city_location_scores.duplicated(['atlas_location_uuid'])]
         city_location_scores = city_location_scores[['atlas_location_uuid', 'score', 'city']].reset_index(drop=True)
-        city_num = len(loc2id)
-        top_location = city_location_scores[:city_num//3]
-        k = 3
-        top_count = top_location.groupby(['city']).count()
-        good_cities = top_count[top_count.score >= k].index.to_list()
-        mediocre_df = city_location_scores.groupby(['city']).apply(lambda row: row.sort_values(by=['score'], ascending=False).head(k)).reset_index(drop=True)
-        good_df = top_location[top_location.city.isin(good_cities)]
-        hot_df = pd.concat([mediocre_df, good_df], axis=0)
-        hot_df = hot_df[~hot_df.duplicated(['atlas_location_uuid'])]
-        hot_df = hot_df.sort_values(by=['score'], ascending=False).reset_index(drop=True)
+        # city_num = len(loc2id)
+        # top_location = city_location_scores[:city_num//3]
+        # k = 3
+        # top_count = top_location.groupby(['city']).count()
+        # good_cities = top_count[top_count.score >= k].index.to_list()
+        # mediocre_df = city_location_scores.groupby(['city']).apply(lambda row: row.sort_values(by=['score'], ascending=False).head(k)).reset_index(drop=True)
+        # good_df = top_location[top_location.city.isin(good_cities)]
+        # hot_df = pd.concat([mediocre_df, good_df], axis=0)
+        # hot_df = hot_df[~hot_df.duplicated(['atlas_location_uuid'])]
+        # hot_df = hot_df.sort_values(by=['score'], ascending=False).reset_index(drop=True)
     #     notop_hot_df = hot_df.iloc[1:]
     #     notop_score_sum = notop_hot_df['score'].sum()
     #     notop_hot_df['score'] = notop_hot_df.apply(lambda row: row['score']/notop_score_sum, axis=1)
     #     hot_df = pd.concat([hot_df.iloc[0:1], notop_hot_df], axis=0)
+        hot_df = city_location_scores.sort_values(by=['score'], ascending=False)
         headquarter_row = pd.DataFrame([[headquarter_id, 1.0, 'New York']], columns=['atlas_location_uuid', 'score', 'city'])
-        hot_df = pd.concat([headquarter_row, hot_df], axis=0).reset_index(drop=False)
+        hot_df = pd.concat([headquarter_row, hot_df], axis=0).reset_index(drop=True)
+        hot_df = hot_df.reset_index(drop=False)
         hot_df = hot_df.rename(columns={'index': 'global_rank'})
         hot_df['city_rank'] = hot_df.groupby(['city'])['score'].rank(method='first', ascending=False)
         return hot_df
@@ -112,7 +114,7 @@ class Occupancy(Reason):
 
 class Shortterm(Reason):
     def __init__(self, sources):
-        Reason.__init__(self, sources, reason_type['hot_location']['short_term'])
+        Reason.__init__(self, sources, reason_type['hot_location']['shortterm'])
     
     def export(self):
         tour_df = self.sources['tour']

@@ -7,8 +7,7 @@ from airflow.operators.python_operator import PythonOperator,BranchPythonOperato
 from airflow.operators.dummy_operator import DummyOperator
 
 import os,sys
-
-sys.path.insert(0,os.path.abspath(os.path.dirname(__file__))+'/../')
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__))+'/../')
 from lib import *
 
 
@@ -20,12 +19,12 @@ args = {
 }
 
 dag_id = 'salesforce_recommendation_reason'
-independent_reasons = {
-    'hot_location_longterm': hot_location_longterm,
-    'hot_location_occupancy': hot_location_occupancy,
-    'hot_location_shortterm': hot_location_shortterm,
 
-}
+# independent_reasons = {
+#     'hot_location_longterm': hot_location_longterm,
+#     'hot_location_occupancy': hot_location_occupancy,
+#     'hot_location_shortterm': hot_location_shortterm,
+# }
 
 
 """
@@ -58,15 +57,15 @@ merging_op = PythonOperator(
     task_id='merging_all_reasons',
     provide_context=True,
     python_callable=merge_reasons,
-    op_kwargs={'reason_names': list(independent_reasons.keys())},
+    op_kwargs={'reason_names': list(reason_function.keys())},
     trigger_rule = 'all_done',
     dag=dag,
 )
 reason_ops = {}
-for name in independent_reasons:
+for name in reason_function:
     reason_ops[name] = PythonOperator(
                                 task_id=name,
-                                python_callable=independent_reasons[name],
+                                python_callable=reason_function[name],
                                 dag=dag,
                             )
     main_op >> reason_ops[name] >> merging_op

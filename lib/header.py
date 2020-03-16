@@ -2,23 +2,23 @@ import os
 pj = os.path.join
 reason_type= {
     'hot_location':{
-        'long_term': 'hot_location|long_term',
-        'occupancy': 'hot_location|occupancy',
-        'short_term': 'hot_location|short_term'
+        'longterm': 'hot_location_longterm',
+        'occupancy': 'hot_location_occupancy',
+        'shortterm': 'hot_location_shortterm'
     },
     'item2item': {
-        'lookalike': 'similar_location|lookalike',
-        'co-visit': 'similar_location|co-visit',
-        'CF': 'similar_location|CF'
+        'lookalike': 'similar_location_lookalike',
+        'covisit': 'similar_location_covisit',
+        'CF': 'similar_location_CF'
     },
     'preference': {
-        'industry': 'preference|industry'
+        'industry': 'preference_industry'
     }
 }
 
 
 features_mappings = {
-    reason_type['hot_location']['long_term']:{
+    reason_type['hot_location']['longterm']:{
         'opportunity':{
             'AccountId': 'account_id',
             'Building_uuid__c': 'atlas_location_uuid',
@@ -41,7 +41,7 @@ features_mappings = {
             'Country__c': 'country',
         }
     },
-    reason_type['hot_location']['short_term']:{
+    reason_type['hot_location']['shortterm']:{
         'tour':{
             'Location_UUID__c': 'atlas_location_uuid',
             'Tour_Date_Time__c': 'date',
@@ -60,7 +60,7 @@ features_mappings = {
                                 'pct_masters_degree', 'walk_score', 'bike_score'],
         }
     },
-    reason_type['item2item']['co-visit']:{
+    reason_type['item2item']['covisit']:{
         'tour':{
             'Account_ID__c': 'account_id',
             'Location_UUID__c': 'atlas_location_uuid',

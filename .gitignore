@@ -1,5 +1,7 @@
-*/__pycache__/*
-cache/*
+dags/__pycache__
+libs/__pycache__
+__pycache__
+cache
 logs
 airflow*
 *.cfg
