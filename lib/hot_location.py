@@ -70,7 +70,7 @@ class Longterm(Reason):
         # op_df: Salesforce opportunity table
         op_df = self.sources['opportunity']
         building_df = self.sources['building']
-        us_building_df = building_df[building_df['country'] == 'USA' &
+        us_building_df = building_df[(building_df['country'] == 'USA') &
                                     (~building_df['atlas_location_uuid'].isna()) & 
                                     (building_df['atlas_location_uuid'] != 'TestBuilding')]
         op_df = op_df[op_df['atlas_location_uuid'].isin(us_building_df['atlas_location_uuid'].unique())]
@@ -112,9 +112,9 @@ class Occupancy(Reason):
 
     def export(self):
         building_df = self.sources['building']
-        us_building_df = building_df[building_df['country'] == 'USA' &
-                                (~building_df['atlas_location_uuid'].isna()) & 
-                                (building_df['atlas_location_uuid'] != 'TestBuilding')]
+        us_building_df = building_df[(building_df['country'] == 'USA') &
+                                    (~building_df['atlas_location_uuid'].isna()) & 
+                                    (building_df['atlas_location_uuid'] != 'TestBuilding')]
         us_building_df = us_building_df.sort_values('occupancy', ascending=False).reset_index(drop=True)
         us_building_df['global_rank'] = us_building_df.index+1
         us_building_df['city_rank'] = us_building_df.groupby(['city'])['occupancy'].rank(method='first', ascending=False)

@@ -136,10 +136,9 @@ class Covisit(Reason):
         sorted_tour_df = tour_df.groupby('account_id').apply(Covisit._slide_window)
         covisit_df = sorted_tour_df.reset_index(drop=False)
         covisit_df = covisit_df.drop(columns='level_1')
-        covisit_df = covisit_df.groupby(['atlas_location_uuid', 'atlas_location_uuid_covisit', 'city', 'city_covisit']).count()
-        covisit_df = covisit_df.reset_index(drop=False)
+        covisit_df = covisit_df.groupby(['atlas_location_uuid', 'atlas_location_uuid_covisit', 'city', 'city_covisit']).count().reset_index(drop=False)
         covisit_df = covisit_df.rename(columns={'account_id': 'count'})
-        covisit_df = covisit_df.groupby(['atlas_location_uuid']).apply(lambda row: row.loc[row['count'].idxmax()])
+        covisit_df = covisit_df.groupby(['atlas_location_uuid']).apply(lambda row: row.loc[row['count'].idxmax()]).reset_index(drop=True)
         return covisit_df
 
 

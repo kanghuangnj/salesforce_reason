@@ -1,9 +1,10 @@
 from lib.hot_location import Longterm, Occupancy, Shortterm
-from lib.similar_location import Lookalike
+from lib.similar_location import Lookalike, Covisit, CF
+from lib.preference import Industry
 from lib.header import CACHEPATH, reason_type, features_mappings
+from functools import reduce
 import os, glob
 import pandas as pd
-from functools import reduce
 pj = os.path.join
 reason_function = {}
 
@@ -18,52 +19,23 @@ def define_reason(sources, reason_type, Reason):
             reason = Reason(sources)
             reason_df = reason.export()
             cols = reason_df.columns.to_list()
-            reason_df = reason_df.rename(columns={col: col+'_'+reason_type for col in cols if not col in cols })
+            reason_df = reason_df.rename(columns={col: col+'_'+reason_type for col in cols if not col in key_col })
             reason_df.to_csv(save_path)
         return reason_df
     return execute_reason
+
+
+unfinished_subtype = ['similar_location_lookalike', 'similar_location_CF']
 
 for toplevel_type in reason_type:
     # if not toplevel_type in ['hot_location']: continue
     for second_type in reason_type[toplevel_type]:
         subtype = reason_type[toplevel_type][second_type]
         sources = list(features_mappings[subtype].keys())
-        if subtype !=  'similar_location_lookalike': continue
+        if subtype in unfinished_subtype: continue
         reason_class = second_type[0].upper() + second_type[1:]
         reason_function[subtype] = define_reason(sources, subtype, eval(reason_class))
 
-# def hot_location_longterm():
-#     sources = ['opportunity', 'building']
-#     save_path = pj(CACHEPATH, 'longterm.csv')
-#     if os.path.exists(save_path):
-#         hot_df = pd.read_csv(save_path)
-#     else:
-#         reason = Longterm(sources)
-#         hot_df = reason.export()
-#         hot_df.to_csv(save_path)
-#     return hot_df
-
-# def hot_location_occupancy():
-#     sources = ['building']
-#     save_path = pj(CACHEPATH, 'occupancy.csv')
-#     if os.path.exists(save_path):
-#         occupancy_df = pd.read_csv(save_path)
-#     else:
-#         reason = Occupancy(sources)
-#         occupancy_df = reason.export()
-#         occupancy_df.to_csv(save_path)
-#     return occupancy_df
-
-# def hot_location_shortterm():
-#     sources = ['tour']
-#     save_path = pj(CACHEPATH, 'shortterm.csv')
-#     if os.path.exists(save_path):
-#         recent_tour_df = pd.read_csv(save_path)
-#     else:
-#         reason = Shortterm(sources)
-#         recent_tour_df = reason.export()
-#         recent_tour_df.to_csv(save_path)
-#     return recent_tour_df
 
 def merge_reasons(reason_names, **context):
     reason_dfs = {}
@@ -106,4 +78,4 @@ def print_msg(msg):
     return printer  # this got changed
     
 
-reason_function['similar_location_lookalike']()
+reason_function['preference_industry']()

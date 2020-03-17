@@ -10,8 +10,6 @@ import os,sys
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__))+'/../')
 from lib import *
 
-
-
 args = {
     'owner': 'kang',
     'depends_on_past': False,
@@ -37,7 +35,7 @@ dag = DAG(
 )
 
 main_op = DummyOperator(
-    task_id = 'Main_entrance',
+    task_id = 'main_entrance',
     dag= dag,
 )
 
@@ -61,6 +59,7 @@ merging_op = PythonOperator(
     trigger_rule = 'all_done',
     dag=dag,
 )
+
 reason_ops = {}
 for name in reason_function:
     reason_ops[name] = PythonOperator(
