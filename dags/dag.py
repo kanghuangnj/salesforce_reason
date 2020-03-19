@@ -45,12 +45,6 @@ generate_pair_op = PythonOperator(
     dag=dag,
 )
 
-# end_op = DummyOperator(
-#     task_id = 'End',
-#     trigger_rule = 'none_failed',
-#     dag = dag,
-# )
-
 merging_op = PythonOperator(
     task_id='merging_all_reasons',
     provide_context=True,
@@ -58,6 +52,14 @@ merging_op = PythonOperator(
     op_kwargs={'reason_names': list(reason_function.keys())},
     trigger_rule = 'all_done',
     dag=dag,
+)
+
+end_op = PythonOperator(
+    task_id = 'end',
+    provide_context=True,
+    trigger_rule = 'all_success',
+    python_callable=post_processing,
+    dag = dag,
 )
 
 reason_ops = {}
@@ -68,3 +70,4 @@ for name in reason_function:
                                 dag=dag,
                             )
     main_op >> reason_ops[name] >> merging_op
+merging_op >> end_op

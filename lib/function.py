@@ -1,6 +1,7 @@
 from lib.hot_location import Longterm, Occupancy, Shortterm
 from lib.similar_location import Lookalike, Covisit, CF
 from lib.preference import Industry
+from lib.utils import Salesforce_Pair, Formatter
 from lib.header import CACHEPATH, reason_type, features_mappings
 from functools import reduce
 import os, glob
@@ -12,20 +13,19 @@ def define_reason(sources, reason_type, Reason):
     key_col = ['account_id', 'atlas_location_uuid']
     def execute_reason():
         save_path = pj(CACHEPATH, reason_type + '.csv')
-        
         if os.path.exists(save_path):
             reason_df = pd.read_csv(save_path)
         else:
             reason = Reason(sources)
             reason_df = reason.export()
-            cols = reason_df.columns.to_list()
-            reason_df = reason_df.rename(columns={col: col+'_'+reason_type for col in cols if not col in key_col })
+            #cols = reason_df.columns.to_list()
+            #reason_df = reason_df.rename(columns={col: col+'_'+reason_type for col in cols if not col in key_col })
             reason_df.to_csv(save_path)
         return reason_df
     return execute_reason
 
 
-unfinished_subtype = ['similar_location_lookalike', 'similar_location_CF']
+unfinished_subtype = ['similar-location_lookalike', 'similar-location_CF']
 
 for toplevel_type in reason_type:
     # if not toplevel_type in ['hot_location']: continue
@@ -53,17 +53,30 @@ def merge_reasons(reason_names, **context):
             reason_dfs[name] = reason_df.drop(columns=[col for col in reason_df.columns if col in drop_list])
     
     get_suffix = lambda reason_name: '_' + reason_name.rsplit('_', 1)[-1]
+
+    for reason_name in reason_dfs:
+        reason_df = reason_dfs[reason_name]
+        reason_dfs[reason_name] = reason_df.rename(columns={col: col+'_'+reason_name for col in reason_df.columns.to_list() if col != key_col})
+
     # initial merge
     first_reason_name = reason_names[0]
     first_reason = reason_dfs[first_reason_name]
-    
-    reason_names = [first_reason] + reason_names[1:]
-    merged_reason_df = reduce(lambda  left_df, right_name: pd.merge(left_df,reason_dfs[right_name],on=key_col,
-                                                            how='outer', suffixes=('', get_suffix(right_name))), reason_names)
 
-    merged_reason_df = merged_reason_df.rename(columns={col: col+'_'+first_reason_name for col in first_reason.columns.to_list() if col != key_col} )
+    reason_names = [first_reason] + reason_names[1:]  #suffixes=('', get_suffix(right_name))), 
+    merged_reason_df = reduce(lambda  left_df, right_name: pd.merge(left_df,reason_dfs[right_name],on=key_col,how='outer'), reason_names)
     merged_reason_df.to_csv(pj(CACHEPATH, 'merge_reasons.csv'))
     return merged_reason_df
+
+def post_processing(*args, **context):
+    save_path = pj(CACHEPATH, 'merge_reasons.csv')
+    if os.path.exists(save_path):
+        reason_df = pd.read_csv(save_path, index_col=[0])
+    else:
+        reason_df = context['task_instance'].xcom_pull(task_ids='merging_all_reasons')
+    formatter = Formatter(reason_df)
+    new_reason_df = formatter.transform()
+    new_reason_df.to_csv(pj(CACHEPATH, 'formatted_merged_reasons.csv'))
+
 
 def generate_pairs():
     pass
@@ -78,4 +91,5 @@ def print_msg(msg):
     return printer  # this got changed
     
 
-reason_function['preference_industry']()
+#reason_function['preference_industry']()
+post_processing()

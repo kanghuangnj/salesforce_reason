@@ -18,9 +18,12 @@ class Industry(Reason):
         geo_df = self.sources['geography']
         company_df = self.sources['company']
         building_df = self.sources['building']
+        us_building_df = building_df[(building_df['country'] == 'USA') &
+                            (~building_df['atlas_location_uuid'].isna()) & 
+                            (building_df['atlas_location_uuid'] != 'TestBuilding')]
         company_df = company_df[~company_df.industry.isna()]
         acc_com_df = account_df.merge(company_df, on='company_id')
-        geo_df = geo_df.merge(building_df, on='building_id')
+        geo_df = geo_df.merge(us_building_df, on='building_id')
         acc_com_geo_df = acc_com_df.merge(geo_df, on='geo_id')
         industry_df = acc_com_geo_df.groupby(['atlas_location_uuid']).apply(Industry._popular_industry).reset_index(drop=False)
         industry_df = industry_df.sort_values('count', ascending=False).reset_index(drop=True)

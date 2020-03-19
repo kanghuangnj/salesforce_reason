@@ -2,14 +2,14 @@ import os
 pj = os.path.join
 reason_type= {
     'hot_location':{
-        'longterm': 'hot_location_longterm',
-        'occupancy': 'hot_location_occupancy',
-        'shortterm': 'hot_location_shortterm'
+        'longterm': 'hot-location_longterm',
+        'occupancy': 'hot-location_occupancy',
+        'shortterm': 'hot-location_shortterm'
     },
     'item2item': {
-        'lookalike': 'similar_location_lookalike',
-        'covisit': 'similar_location_covisit',
-        'CF': 'similar_location_CF'
+        'lookalike': 'similar-location_lookalike',
+        'covisit': 'similar-location_covisit',
+        'CF': 'similar-location_CF'
     },
     'preference': {
         'industry': 'preference_industry'
@@ -116,7 +116,8 @@ features_mappings = {
         },
         'building':{
             'Id': 'building_id',
-            'UUID__c': 'atlas_location_uuid'
+            'UUID__c': 'atlas_location_uuid',
+            'Country__c': 'country',
         }
     },
     
