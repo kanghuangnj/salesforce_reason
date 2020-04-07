@@ -3,8 +3,8 @@ import numpy as np
 import scipy.sparse as sps 
 from sklearn.cluster import AffinityPropagation
 from sklearn.preprocessing import normalize,scale
-from lib.base import Reason
-from lib.header import reason_type
+from reason_lib.base import Reason
+from reason_lib.header import reason_type
 from datetime import date
 
 class Lookalike(Reason):
@@ -130,16 +130,24 @@ class Covisit(Reason):
 
     def export(self):
         tour_df = self.sources['tour']
+        building_df = self.sources['building']
         tour_df = tour_df[(~tour_df['atlas_location_uuid'].isna()) & 
                         (~tour_df['account_id'].isna()) &
                         (~tour_df['tour_date'].isna())].reset_index(drop=True)
-        sorted_tour_df = tour_df.groupby('account_id').apply(Covisit._slide_window)
-        covisit_df = sorted_tour_df.reset_index(drop=False)
-        covisit_df = covisit_df.drop(columns='level_1')
+        sorted_tour_df = tour_df.groupby('account_id').apply(Covisit._slide_window).reset_index(drop=False)
+        covisit_df = sorted_tour_df.drop(columns='level_1')
         covisit_df = covisit_df.groupby(['atlas_location_uuid', 'atlas_location_uuid_covisit', 'city', 'city_covisit']).count().reset_index(drop=False)
         covisit_df = covisit_df.rename(columns={'account_id': 'count'})
         covisit_df = covisit_df.groupby(['atlas_location_uuid']).apply(lambda row: row.loc[row['count'].idxmax()]).reset_index(drop=True)
+        covisit_df = covisit_df.merge(building_df, left_on='atlas_location_uuid_covisit', right_on='atlas_location_uuid', suffixes=('', '_covisit_'))
         return covisit_df
+    
+    def export_reason(self):
+        covisit_df = self.cache_reason_df
+        template = 'Most clients will visit this location after visiting location %s.'
+        keycol = ['atlas_location_uuid', 'reason']
+        covisit_df['reason'] = covisit_df.apply(lambda row: template % (row['address']+', '+ row['city_covisit']), axis=1)
+        return covisit_df[keycol]
 
 
 class CF(Reason):

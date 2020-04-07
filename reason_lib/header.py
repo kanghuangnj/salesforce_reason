@@ -1,6 +1,7 @@
 import os
 pj = os.path.join
 reason_type= {
+
     'hot_location':{
         'longterm': 'hot-location_longterm',
         'occupancy': 'hot-location_occupancy',
@@ -18,6 +19,18 @@ reason_type= {
 
 
 features_mappings = {
+    'salesforce_pair':{
+        'opportunity':{
+            'AccountId': 'account_id',
+            'Building_uuid__c': 'atlas_location_uuid',
+        },
+        'building':{
+            'UUID__c': 'atlas_location_uuid',
+            'City__c': 'city',
+            'Country__c': 'country',
+        }
+        
+    },
     reason_type['hot_location']['longterm']:{
         'opportunity':{
             'AccountId': 'account_id',
@@ -81,6 +94,10 @@ features_mappings = {
             'Location_UUID__c': 'atlas_location_uuid',
             'Tour_Date__c': 'tour_date',
             'City__c': 'city',
+        },
+        'building':{
+            'UUID__c': 'atlas_location_uuid',
+            'Address__c': 'address',
         }
     },
     reason_type['item2item']['CF']:{
@@ -126,6 +143,7 @@ features_mappings = {
 
 DATAPATH = '/Users/kanghuang/Documents/work/location_recommendation/salesforce_data'
 CACHEPATH = '/Users/kanghuang/Documents/work/location_recommendation/salesforce_reason/cache'
+
 datapaths= {
     'opportunity': pj(DATAPATH, 'sfdc_opportunities_all.csv'),
     'account': pj(DATAPATH, 'sfdc_accounts_all.csv'),
@@ -135,3 +153,4 @@ datapaths= {
     'tour': pj(DATAPATH, 'sfdc_tour_all.csv'),
     'location_scorecard': pj(DATAPATH, 'location_scorecard_200106.csv'),
 }
+

@@ -1,5 +1,5 @@
-from lib.base import Reason
-from lib.header import reason_type
+from reason_lib.base import Reason
+from reason_lib.header import reason_type
 from collections import defaultdict
 from datetime import datetime, date
 import time
@@ -105,6 +105,13 @@ class Longterm(Reason):
         hot_df['city_rank'] = hot_df.groupby(['city'])['score'].rank(method='first', ascending=False)
         return hot_df
 
+    def export_reason(self):
+        hot_df = self.cache_reason_df    
+        template = 'This location is very popular. It is ranked %d in %s'
+        keycol = ['atlas_location_uuid', 'reason']
+        hot_df['reason'] = hot_df.apply(lambda row: template % (row['city_rank'], row['city']), axis=1)
+        return hot_df[keycol]
+
 
 class Occupancy(Reason):
     def __init__(self, sources):
@@ -118,8 +125,16 @@ class Occupancy(Reason):
         us_building_df = us_building_df.sort_values('occupancy', ascending=False).reset_index(drop=True)
         us_building_df['global_rank'] = us_building_df.index+1
         us_building_df['city_rank'] = us_building_df.groupby(['city'])['occupancy'].rank(method='first', ascending=False)
-        us_building_df = us_building_df.rename(columns={'occupancy': 'score', 'occupancy_rating': 'rating'})
-        return us_building_df
+        occupancy_df = us_building_df.rename(columns={'occupancy': 'score', 'occupancy_rating': 'rating'})
+        return occupancy_df
+
+    def export_reason(self):
+        occupancy_df = self.cache_reason_df    
+        template = 'The occupancy of the location is outstanding.'
+        keycol = ['atlas_location_uuid', 'reason']
+        occupancy_df = occupancy_df[occupancy_df['rating'] == 'High']
+        occupancy_df['reason'] = template
+        return occupancy_df[keycol]
 
 class Shortterm(Reason):
     def __init__(self, sources):
@@ -137,14 +152,20 @@ class Shortterm(Reason):
         valid_date = '-'.join([str(valid_year), str(valid_month), str(cur_date.day)])
         cur_date = '-'.join([str(cur_date.year), str(cur_date.month), str(cur_date.day)])
 
-        recent_tour = tour_df[(~tour_df['atlas_location_uuid'].isna()) & (~tour_df['date'].isna())]
-        recent_tour = recent_tour[(recent_tour['date'] > valid_date) & (recent_tour['date'] <= cur_date)][['atlas_location_uuid','date']]
-        recent_tour = recent_tour.groupby('atlas_location_uuid').count().reset_index(drop=False)
-        recent_tour = recent_tour.merge(tour_df[['atlas_location_uuid', 'city']], on='atlas_location_uuid')
-        recent_tour = recent_tour[~recent_tour.duplicated('atlas_location_uuid')]
-        recent_tour = recent_tour.rename(columns={'date': 'score'})
-        recent_tour = recent_tour.sort_values('score', ascending=False).reset_index(drop=True)
-        recent_tour['global_rank'] = recent_tour.index+1
-        recent_tour['city_rank'] = recent_tour.groupby(['city'])['score'].rank(method='first', ascending=False)
-        return recent_tour
-
+        recent_tour_df = tour_df[(~tour_df['atlas_location_uuid'].isna()) & (~tour_df['date'].isna())]
+        recent_tour_df = recent_tour_df[(recent_tour_df['date'] > valid_date) & (recent_tour_df['date'] <= cur_date)][['atlas_location_uuid','date']]
+        recent_tour_df = recent_tour_df.groupby('atlas_location_uuid').count().reset_index(drop=False)
+        recent_tour_df = recent_tour_df.merge(tour_df[['atlas_location_uuid', 'city']], on='atlas_location_uuid')
+        recent_tour_df = recent_tour_df[~recent_tour_df.duplicated('atlas_location_uuid')]
+        recent_tour_df = recent_tour_df.rename(columns={'date': 'score'})
+        recent_tour_df = recent_tour_df.sort_values('score', ascending=False).reset_index(drop=True)
+        recent_tour_df['global_rank'] = recent_tour_df.index+1
+        recent_tour_df['city_rank'] = recent_tour_df.groupby(['city'])['score'].rank(method='first', ascending=False)
+        return recent_tour_df
+    
+    def export_reason(self):
+        recent_tour_df = self.cache_reason_df 
+        template = 'This location is very active. It has %d visit tours in 3 month.'
+        keycol = ['atlas_location_uuid', 'reason']
+        recent_tour_df['reason'] = recent_tour_df.apply(lambda row: template % row['score'], axis=1)
+        return recent_tour_df[keycol]

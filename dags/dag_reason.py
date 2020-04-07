@@ -7,8 +7,9 @@ from airflow.operators.python_operator import PythonOperator,BranchPythonOperato
 from airflow.operators.dummy_operator import DummyOperator
 
 import os,sys
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__))+'/../')
-from lib import *
+REASONLIB_PATH='/Users/kanghuang/Documents/work/location_recommendation/salesforce_reason'
+sys.path.insert(0, REASONLIB_PATH)
+from reason_lib import *
 
 args = {
     'owner': 'kang',
@@ -46,7 +47,7 @@ generate_pair_op = PythonOperator(
 )
 
 merging_op = PythonOperator(
-    task_id='merging_all_reasons',
+    task_id='merge_all_reasons',
     provide_context=True,
     python_callable=merge_reasons,
     op_kwargs={'reason_names': list(reason_function.keys())},
