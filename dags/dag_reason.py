@@ -7,8 +7,9 @@ from airflow.operators.python_operator import PythonOperator,BranchPythonOperato
 from airflow.operators.dummy_operator import DummyOperator
 
 import os,sys
-REASONLIB_PATH='/Users/kanghuang/Documents/work/location_recommendation/salesforce_reason'
-sys.path.insert(0, REASONLIB_PATH)
+pj = os.path.join
+LIBPATH = pj(os.path.dirname(os.path.abspath(__file__)), '../../salesforce_reason')
+sys.path.insert(0, LIBPATH)
 from reason_lib import *
 
 args = {
@@ -40,9 +41,9 @@ main_op = DummyOperator(
     dag= dag,
 )
 
-generate_pair_op = PythonOperator(
-    task_id='generate_pairs',
-    python_callable=generate_pairs,
+context_op = PythonOperator(
+    task_id='generate_context',
+    python_callable=generate_context,
     dag=dag,
 )
 
@@ -63,12 +64,14 @@ end_op = PythonOperator(
     dag = dag,
 )
 
-reason_ops = {}
-for name in reason_function:
-    reason_ops[name] = PythonOperator(
-                                task_id=name,
-                                python_callable=reason_function[name],
-                                dag=dag,
-                            )
-    main_op >> reason_ops[name] >> merging_op
-merging_op >> end_op
+# reason_ops = {}
+# main_op >> context_op
+# for name in reason_function:
+#     reason_ops[name] = PythonOperator(
+#                                 task_id=name,
+#                                 provide_context=True,
+#                                 python_callable=reason_function[name],
+#                                 dag=dag,
+#                             )
+#     context_op >> reason_ops[name] >> merging_op
+# merging_op >> end_op

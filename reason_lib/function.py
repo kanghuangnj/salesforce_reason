@@ -1,7 +1,7 @@
 from reason_lib.hot_location import Longterm, Occupancy, Shortterm
 from reason_lib.similar_location import Lookalike, Covisit, CF
 from reason_lib.preference import Industry
-from reason_lib.utils import Salesforce_Pair, Formatter
+from reason_lib.utils import Salesforce_Loader, Formatter
 from reason_lib.header import DATAPATH, CACHEPATH, reason_type, features_mappings
 from functools import reduce
 import os, glob, csv
@@ -11,14 +11,16 @@ reason_function = {}
 
 def define_reason(sources, reason_type, Reason):
     key_col = ['account_id', 'atlas_location_uuid']
-    def execute_reason():
+    def execute_reason(**context):
+        data = context['task_instance'].xcom_pull(task_ids='salesforce_context')
         reason = Reason(sources)
         reason_df = reason.export_reason()
+        metric = reason.evaluate(data, reason_df)
         #cols = reason_df.columns.to_list()
         #reason_df = reason_df.rename(columns={col: col+'_'+reason_type for col in cols if not col in key_col })
         save_path = pj(CACHEPATH, reason_type+'_reason.csv')
         reason_df.to_csv(save_path)
-        return reason_df
+        return metric
     return execute_reason
 
 
@@ -76,24 +78,25 @@ def post_processing(*args, **context):
     salesforce_pair_df = pd.read_csv(pj(DATAPATH, 'salesforce_pair_prediction.csv'))
     salesforce_reason_df = salesforce_pair_df.merge(new_reason_df, on='atlas_location_uuid')
     #new_reason_df.to_json(pj(CACHEPATH, 'formatted_merged_reasons.json'), orient='index')
-    salesforce_reason_df.to_csv(pj(CACHEPATH, 'formatted_merged_reasons.csv'))
+    salesforce_reason_df = salesforce_reason_df.dropna(thresh=len(salesforce_reason_df.columns)).reset_index(drop=True)
+    salesforce_reason_df.to_csv(pj(CACHEPATH, 'formatted_merged_reasons.csv'),index=False)
 
-def generate_pairs():
-    dataloader = Salesforce_Pair(features_mappings['salesforce_pair'])
+def generate_context():
+    salesforce_data = Salesforce_Loader(features_mappings['salesforce_context'])
     # cache_path = pj(CACHEPATH, 'salesforce_pair.csv')
     # if not os.path.exist(cache_path):
     #     salesforce_pair =  dataloader.export()
     #     salesforce_pair.to_csv(cache_path)
     # else:
     #     salesforce_pair = pd.read_csv(cache_path)
-    return dataloader.cache_reason_df
+    return salesforce_data.cache_reason_df
 
 
-for name in reason_function:
-    reason_function[name]()
-merge_reasons([])
+# for name in reason_function:
+#     reason_function[name]()
+# merge_reasons([])
 
-post_processing()
+# post_processing()
 #reason_function['similar-location_covisit']()
 #reason_function['hot-location_shortterm']()
 #reason_function['preference_industry']()

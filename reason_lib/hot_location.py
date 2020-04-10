@@ -112,6 +112,9 @@ class Longterm(Reason):
         hot_df['reason'] = hot_df.apply(lambda row: template % (row['city_rank'], row['city']), axis=1)
         return hot_df[keycol]
 
+    def evaluate(self, acc2city):
+        accloc_df = self.cache_reason_df.merge(acc2city, on='city')
+        return accloc_df
 
 class Occupancy(Reason):
     def __init__(self, sources):
@@ -135,6 +138,11 @@ class Occupancy(Reason):
         occupancy_df = occupancy_df[occupancy_df['rating'] == 'High']
         occupancy_df['reason'] = template
         return occupancy_df[keycol]
+
+    def generate_candidates(self, acc2city):
+        accloc_df = self.cache_reason_df.merge(acc2city, on='city')
+        return accloc_df
+
 
 class Shortterm(Reason):
     def __init__(self, sources):
@@ -169,3 +177,7 @@ class Shortterm(Reason):
         keycol = ['atlas_location_uuid', 'reason']
         recent_tour_df['reason'] = recent_tour_df.apply(lambda row: template % row['score'], axis=1)
         return recent_tour_df[keycol]
+
+    def generate_candidates(self, acc2city):
+        accloc_df = self.cache_reason_df.merge(acc2city, on='city')
+        return accloc_df

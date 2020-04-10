@@ -19,7 +19,7 @@ reason_type= {
 
 
 features_mappings = {
-    'salesforce_pair':{
+    'salesforce_context':{
         'opportunity':{
             'AccountId': 'account_id',
             'Building_uuid__c': 'atlas_location_uuid',
@@ -140,9 +140,12 @@ features_mappings = {
     
 }
 
+ROOTPATH = os.path.dirname(os.path.abspath(__file__))
+DATAPATH = pj(ROOTPATH,  '../../salesforce_data')
+CACHEPATH = pj(ROOTPATH, '../cache')
 
-DATAPATH = '/Users/kanghuang/Documents/work/location_recommendation/salesforce_data'
-CACHEPATH = '/Users/kanghuang/Documents/work/location_recommendation/salesforce_reason/cache'
+# DATAPATH = '/Users/kanghuang/Documents/work/location_recommendation/salesforce_data'
+# CACHEPATH = '/Users/kanghuang/Documents/work/location_recommendation/salesforce_reason/cache'
 
 datapaths= {
     'opportunity': pj(DATAPATH, 'sfdc_opportunities_all.csv'),

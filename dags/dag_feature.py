@@ -7,8 +7,9 @@ from airflow.operators.python_operator import PythonOperator,BranchPythonOperato
 from airflow.operators.dummy_operator import DummyOperator
 
 import os,sys
-FEATLIB_PATH = '/Users/kanghuang/Documents/work/location_recommendation/salesforce_model'
-sys.path.insert(0, FEATLIB_PATH)
+pj = os.path.join
+LIBPATH = pj(os.path.dirname(os.path.abspath(__file__)), '../../salesforce_model')
+sys.path.insert(0, LIBPATH)
 from feature_lib.function import feat_function, merge_feat, rating_gen
 
 args = {
@@ -58,13 +59,16 @@ merging_op = PythonOperator(
 #     trigger_rule = 'success',
 #     dag=dag,
 # )
-main_op >> rating_op >> merging_op
-feat_ops = {}
-for name in feat_function:
-    feat_ops[name] = PythonOperator(
-                                task_id=name,
-                                python_callable=feat_function[name],
-                                dag=dag,
-                            )
-    main_op >> feat_ops[name] >> merging_op
-# merging_op >> save_op
+
+
+
+
+# main_op >> rating_op >> merging_op
+# feat_ops = {}
+# for name in feat_function:
+#     feat_ops[name] = PythonOperator(
+#                                 task_id=name,
+#                                 python_callable=feat_function[name],
+#                                 dag=dag,
+#                             )
+#     main_op >> feat_ops[name] >> merging_op

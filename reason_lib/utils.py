@@ -2,14 +2,16 @@ import os
 import json
 import numpy as np
 from reason_lib.base import Reason
-from reason_lib.header import reason_type
+from reason_lib.header import reason_type, DATAPATH
+
 pj = os.path.join
-class Salesforce_Pair(Reason):
+
+class Salesforce_Loader(Reason):
     """
     generate [salesforce_pair] from [opportunities]
     """
     def __init__(self, sources):
-        Reason.__init__(self, sources, 'salesforce_pair')
+        Reason.__init__(self, sources, 'salesforce_cotext')
 
     def export(self):
         building_df = self.sources['building']
@@ -20,9 +22,10 @@ class Salesforce_Pair(Reason):
         us_building_df = us_building_df.drop(columns='country')
         op_city_df = op_df.merge(us_building_df, on='atlas_location_uuid').drop(columns='atlas_location_uuid')
         op_city_df = op_city_df.drop_duplicates(['account_id', 'city'], keep='last')
-        op_atlas_df = op_city_df.merge(us_building_df, on='city')
-        op_atlas_df = op_atlas_df.drop(columns='city')
-        return op_atlas_df
+        # op_atlas_df = op_city_df.merge(us_building_df, on='city')
+        # op_atlas_df = op_atlas_df.drop(columns='city')
+        return {'acc2city': op_city_df,
+                }
 
 
     # def generate(self , save_pos_pair_name ,save_opp_x_atlas_name='salesforce/salesforce_opp_x_atlas.csv'):
@@ -124,14 +127,17 @@ class Formatter():
             if len(payload[top_level]) == 0:
                 del payload[top_level]
         row['reason'] = self.trans_reason_json2str(payload)
+        row[['reason']] = row[['reason']].astype(str)
         return row[['reason']]
 
     def trans_reason_json2str(self, reason_json):
-        reason_list = []
+        reason_list = {}
         for top_key in reason_json:
             subreason_list = [subreason['reason'] for subreason in reason_json[top_key].values()]
-            reason_list.extend(subreason_list)
-        return '; '.join(reason_list)
+            sub_reason_str = '; '.join(subreason_list)
+            reason_list[top_key] = sub_reason_str
+        reason_json = json.dumps(reason_list)
+        return reason_json
 
     def transform(self):
         dataframe = self.dataframe.groupby('atlas_location_uuid').apply(self.trans_reason_df2json)
@@ -140,6 +146,27 @@ class Formatter():
         dataframe = dataframe[key_col+['reason']]
         return dataframe
 
+def recall(gold, pred): 
+    recall = 0
+    goldset = set()
+    for g in gold:
+        goldset.add(g)
+    for loc in pred:
+        if loc in goldset:
+            recall += 1.0
+    return recall / len(gold)
+    
 
-
-
+def recall_evaluate(candidates_df):
+    gt_df = pj(DATAPATH, 'reason_evaluation_pairs.csv')
+    target_accounts = gt_df.account_id.unique()
+    avg_sim = 0
+    for acc_id in target_accounts:
+        acc_gt_df = gt_df[gt_df['account_id'] == acc_id]
+        query = acc_gt_df.loc[acc_gt_df['date'].idxmax()]['atlas_location_uuid']
+        gt_loc_list = acc_gt_df[acc_gt_df['atlas_location_uuid']!=query].unique().tolist()
+        pred_loc_list = candidates_df[candidates_df['account_id'] == acc_id]
+        sim = recall(pred_loc_list, gt_loc_list) 
+        avg_sim += sim
+    avg_sim /= len(target_accounts)
+    return avg_sim

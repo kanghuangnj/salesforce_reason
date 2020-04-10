@@ -1,1 +1,1 @@
-from reason_lib.function import generate_pairs, reason_function, merge_reasons, post_processing
+from reason_lib.function import generate_context, reason_function, merge_reasons, post_processing

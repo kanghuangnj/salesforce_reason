@@ -6,3 +6,6 @@ airflow*
 .DS_Store
 *~
 dags/__pycache__
+runs
+*.csv
+*.py

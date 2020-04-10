@@ -13,7 +13,8 @@ class Reason:
             self.formalize()
             self.cache_reason_df = None
             self.cache_reason_df = self.export()
-            self.cache_reason_df.to_csv(cache_path)
+            if type(self.cache_reason_df) == pd.DataFrame:
+                self.cache_reason_df.to_csv(cache_path)
         
     def formalize(self):
         sources = self.sources
@@ -22,6 +23,14 @@ class Reason:
             source_df = pd.read_csv(datapaths[source_name])
             feature_mapping = self.feature_mappings[source_name]
             source_df = source_df[feature_mapping]
-            if type(feature_mapping) is dict:
+            if type(feature_mapping) == dict:
                 source_df = source_df.rename(columns=feature_mapping)
             self.sources[source_name] = source_df
+
+    # def evaluate(self, context):
+    #     acc2city = context['acc2city']
+    #     accloc_df = self.generate_candidates(acc2city)
+    #     top_accloc_df = accloc_df[accloc_df.city_rank < 5]
+    #     return {
+    #         'recall': recall_evaluate(top_accloc_df),
+    #     }
